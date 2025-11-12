@@ -15,15 +15,35 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Событие: покупка товаров покупателем.
- * Покупатель выбирает несколько товаров из ассортимента торгового зала,
- * исходя из бюджета и предпочтений. Учитываются выручка и проданное количество.
+ * Событие: покупка товаров одним покупателем.
+ * <p>
+ * Логика:
+ * <ol>
+ *     <li>Создаётся {@link Customer} c бюджетом и предпочтениями по категориям.</li>
+ *     <li>Смотрим ассортимент торгового зала ({@link Location#FLOOR}).</li>
+ *     <li>Сортируем товары по тому, насколько они нравятся покупателю.</li>
+ *     <li>Пытаемся набрать несколько позиций, не выходя за границы бюджета.</li>
+ *     <li>При успешной покупке:
+ *          <ul>
+ *              <li>списываем товар из инвентаря,</li>
+ *              <li>считаем стоимость с учётом скидок ({@link PriceService}),</li>
+ *              <li>фиксируем статистику продаж в {@link ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.reporting.DayStats}.</li>
+ *          </ul>
+ *     </li>
+ * </ol>
  */
 public class PurchaseEvent extends Event {
+
     private static int NEXT_ID = 1;
+
     private final RandomEx rnd;
     private final PriceService prices;
 
+    /**
+     * @param when   день покупки
+     * @param rnd    генератор случайных чисел
+     * @param prices сервис расчёта цен и скидок
+     */
     public PurchaseEvent(LocalDate when, RandomEx rnd, PriceService prices) {
         super(when);
         this.rnd = rnd;
@@ -33,22 +53,28 @@ public class PurchaseEvent extends Event {
     @Override
     public void apply() {
         var prods = DemoCatalog.products();
-        var cats = prods.stream().map(Product::category).distinct().collect(Collectors.toList());
+        var cats = prods.stream()
+                .map(Product::category)
+                .distinct()
+                .collect(Collectors.toList());
+
         var customer = new Customer(NEXT_ID++, rnd, cats);
 
-        // Получаем ассортимент торгового зала
-        List<Product> floorProducts = new ArrayList<>(AppContext.inventory.totalByLocation(Location.FLOOR).keySet());
+        // Ассортимент торгового зала
+        List<Product> floorProducts =
+                new ArrayList<>(AppContext.inventory.totalByLocation(Location.FLOOR).keySet());
+
         if (floorProducts.isEmpty()) {
-            System.out.printf("[%s] Покупатель #%d: в зале пусто, покупка отменена%n", when, customer.id);
+            System.out.printf("[%s] Покупатель #%d: в зале пусто, покупка отменена%n",
+                    when, customer.id);
             return;
         }
 
-        // Сортируем, чтобы сначала шли любимые категории покупателя
+        // Сначала любимые категории покупателя
         floorProducts.sort((a, b) -> Boolean.compare(customer.likes(b), customer.likes(a)));
 
-        // Безопасный диапазон для количества желаемых позиций
         int max = Math.min(5, floorProducts.size());
-        int min = Math.min(2, max); // если товаров меньше 2 — берём min=1
+        int min = Math.min(2, max); // если всего 1 товар — min будет 1
         int want = rnd.range(min, max);
 
         BigDecimal total = BigDecimal.ZERO;
@@ -58,17 +84,16 @@ public class PurchaseEvent extends Event {
             Product p = floorProducts.get(i);
             double qty = customer.desiredQty(p, rnd);
 
-            // Определяем цену (возможны скидки, если товар скоропортящийся)
+            // На уровне PriceService скидки завязаны на продукт/категорию и срок годности.
+            // Здесь в простом варианте expiry не пробрасываем (можно расширить в будущем).
             LocalDate expiry = null;
             BigDecimal unitPrice = prices.retailPrice(p, when, expiry);
             BigDecimal cost = unitPrice.multiply(BigDecimal.valueOf(qty));
 
-            // Проверяем бюджет
             if (total.add(cost).doubleValue() > customer.budget) {
                 continue;
             }
 
-            // Пытаемся списать товар с пола
             double deducted = AppContext.inventory.deductFromFloor(p, qty);
             if (deducted > 0) {
                 purchased.put(p, deducted);
@@ -76,22 +101,18 @@ public class PurchaseEvent extends Event {
                 BigDecimal line = unitPrice.multiply(BigDecimal.valueOf(deducted));
                 total = total.add(line);
 
-                // Учитываем продажу в дневной статистике
                 AppContext.dayStats.addSale(p, deducted, line);
             }
         }
 
-        // Если ничего не куплено
         if (purchased.isEmpty()) {
             System.out.printf("[%s] Покупатель #%d: ничего не куплено (бюджет=%.2f)%n",
                     when, customer.id, customer.budget);
             return;
         }
 
-        // Добавляем чек в статистику
         AppContext.dayStats.addReceipt(total, purchased.size());
 
-        // Печатаем чек
         System.out.printf("[%s] Покупатель #%d: чек=%.2f, позиций=%d (бюджет=%.2f)%n",
                 when, customer.id, total.doubleValue(), purchased.size(), customer.budget);
         for (var e : purchased.entrySet()) {
@@ -99,6 +120,9 @@ public class PurchaseEvent extends Event {
         }
     }
 
+    /**
+     * Покупки выполняются после выкладки товаров.
+     */
     @Override
     public int priority() {
         return 30;

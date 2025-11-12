@@ -9,10 +9,25 @@ import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.domain.*;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Событие поставки: добавляет партии товаров на склад. */
+/**
+ * Событие поставки товаров на склад.
+ * <p>
+ * При выполнении:
+ * <ul>
+ *     <li>выбирается 2–4 случайных товара из каталога;</li>
+ *     <li>для каждого генерируется количество (штучное или весовое);</li>
+ *     <li>назначается срок годности для скоропортящихся товаров;</li>
+ *     <li>в инвентарь добавляются новые партии в локацию {@link Location#WAREHOUSE}.</li>
+ * </ul>
+ */
 public class DeliveryEvent extends Event {
+
     private final RandomEx rnd;
 
+    /**
+     * @param when дата поставки
+     * @param rnd  генератор случайных чисел
+     */
     public DeliveryEvent(LocalDate when, RandomEx rnd) {
         super(when);
         this.rnd = rnd;
@@ -26,8 +41,9 @@ public class DeliveryEvent extends Event {
         for (int i = 0; i < deliveries; i++) {
             Product p = products.get(rnd.range(0, products.size() - 1));
             double qty = (p.measure() == MeasureType.UNIT)
-                    ? rnd.range(20, 80)          // шт
-                    : rnd.range(10.0, 50.0);     // кг
+                    ? rnd.range(20, 80)          // штучные товары
+                    : rnd.range(10.0, 50.0);     // весовые (кг)
+
             LocalDate expiry = p.perishable()
                     ? when.plusDays(rnd.range(2, 7))
                     : null;
@@ -38,6 +54,10 @@ public class DeliveryEvent extends Event {
         }
     }
 
+    /**
+     * Поставка должна происходить до выкладки и покупок,
+     * поэтому ей присвоен более высокий приоритет (меньшее число).
+     */
     @Override
     public int priority() {
         return 10;
