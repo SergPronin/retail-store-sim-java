@@ -8,6 +8,7 @@ import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.domain.*;
 import java.time.LocalDate;
 import java.util.Map;
 
+/** Событие перемещения товаров со склада в торговый зал. */
 public class MoveToFloorEvent extends Event {
     private final RandomEx rnd;
 
@@ -18,22 +19,26 @@ public class MoveToFloorEvent extends Event {
 
     @Override
     public void apply() {
-        Map<Product, Double> wh = AppContext.inventory.totalByLocation(Location.WAREHOUSE);
-        if (wh.isEmpty()) {
+        Map<Product, Double> warehouseStock = AppContext.inventory.totalByLocation(Location.WAREHOUSE);
+        if (warehouseStock.isEmpty()) {
             System.out.printf("[%s] Выкладка: на складе пусто%n", when);
             return;
         }
-        Map<Product, Double> floor = AppContext.inventory.totalByLocation(Location.FLOOR);
 
-        for (var e : wh.entrySet()) {
-            Product p = e.getKey();
-            double target = (p.measure() == MeasureType.UNIT) ? rnd.range(10, 30) : rnd.range(5.0, 15.0);
-            double onFloor = floor.getOrDefault(p, 0.0);
+        Map<Product, Double> floorStock = AppContext.inventory.totalByLocation(Location.FLOOR);
+
+        for (var entry : warehouseStock.entrySet()) {
+            Product product = entry.getKey();
+            double target = (product.measure() == MeasureType.UNIT)
+                    ? rnd.range(10, 30)
+                    : rnd.range(5.0, 15.0);
+            double onFloor = floorStock.getOrDefault(product, 0.0);
             double need = Math.max(0, target - onFloor);
+
             if (need > 0) {
-                double moved = AppContext.inventory.move(Location.WAREHOUSE, Location.FLOOR, p, need);
-                if ( moved > 0 ) {
-                    System.out.printf("[%s] Выкладка: %-12s moved=%6.2f -> ЗАЛ%n", when, p.name(), moved);
+                double moved = AppContext.inventory.move(Location.WAREHOUSE, Location.FLOOR, product, need);
+                if (moved > 0) {
+                    System.out.printf("[%s] Выкладка: %-12s moved=%6.2f -> ЗАЛ%n", when, product.name(), moved);
                 }
             }
         }

@@ -1,18 +1,23 @@
 package ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.core;
 
 import java.time.LocalDate;
+
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.app.Config;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.DeliveryEvent;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.MoveToFloorEvent;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.RemoveExpiredEvent;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.PurchaseEvent;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.pricing.PriceService;
 
-
-/**
- * Движок: идём по дням, сеем события (пока пусто) и выполняем их.
- */
+/** Движок: идём по дням, планируем и выполняем события. */
 public class SimEngine {
     private final Clock clock;
     private final EventQueue queue;
     private final RandomEx rnd;
+
+    // сервис цен/скидок — один на весь движок
+    private final PriceService priceService =
+            new PriceService(Config.PERISHABLE_HORIZON_DAYS, Config.PERISHABLE_DISCOUNT);
 
     public SimEngine(Clock clock, EventQueue queue, RandomEx rnd) {
         this.clock = clock;
@@ -20,18 +25,24 @@ public class SimEngine {
         this.rnd = rnd;
     }
 
+    /** Планирование событий на конкретный день. */
     public void seedDay(LocalDate d) {
-        // 1) почти каждый день чистим просрочку в начале
+        // 1) Чистка просрочки — в начале дня
         if (rnd.chance(0.9)) {
             queue.add(new RemoveExpiredEvent(d));
         }
-        // 2) поставка на склад
+        // 2) Поставка на склад
         if (rnd.chance(0.6)) {
             queue.add(new DeliveryEvent(d, rnd));
         }
-        // 3) выкладка в зал
+        // 3) Выкладка в зал
         if (rnd.chance(0.7)) {
             queue.add(new MoveToFloorEvent(d, rnd));
+        }
+        // 4) Покупатели (после выкладки)
+        int buyers = rnd.range(Config.CUSTOMERS_PER_DAY_MIN, Config.CUSTOMERS_PER_DAY_MAX);
+        for (int i = 0; i < buyers; i++) {
+            queue.add(new PurchaseEvent(d, rnd, priceService));
         }
     }
 
