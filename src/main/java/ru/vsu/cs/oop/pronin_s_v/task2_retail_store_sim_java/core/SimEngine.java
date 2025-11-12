@@ -8,6 +8,9 @@ import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.MoveToFloorEv
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.RemoveExpiredEvent;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.PurchaseEvent;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.pricing.PriceService;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.reporting.Reporter;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.AppContext;
+
 
 /** Движок: идём по дням, планируем и выполняем события. */
 public class SimEngine {
@@ -65,6 +68,8 @@ public class SimEngine {
                 e.apply();
             }
 
+            Reporter.printEndOfDay(d, AppContext.dayStats);
+            AppContext.dayStats.reset();
             clock.nextDay();
         }
     }

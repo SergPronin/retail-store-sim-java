@@ -37,4 +37,9 @@ public class DeliveryEvent extends Event {
                     when, p.name(), qty, String.valueOf(expiry));
         }
     }
+
+    @Override
+    public int priority() {
+        return 10;
+    }
 }
