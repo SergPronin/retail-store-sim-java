@@ -17,6 +17,7 @@ public class RemoveExpiredEvent extends Event {
     public void apply() {
         int fromWarehouse = AppContext.inventory.removeExpired(Location.WAREHOUSE, when);
         int fromFloor = AppContext.inventory.removeExpired(Location.FLOOR, when);
+        AppContext.dayStats.addExpiredLots(fromWarehouse + fromFloor);
         System.out.printf("[%s] Просрочка удалена: склад=%d, зал=%d%n", when, fromWarehouse, fromFloor);
     }
 }
