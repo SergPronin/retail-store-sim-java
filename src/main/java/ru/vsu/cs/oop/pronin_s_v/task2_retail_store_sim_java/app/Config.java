@@ -17,4 +17,6 @@ public class Config {
 
     public static final int CUSTOMERS_PER_DAY_MIN = 8;
     public static final int CUSTOMERS_PER_DAY_MAX = 16;
+
+    public static final double DISCOUNT_EVENT_PROB = 0.3;
 }

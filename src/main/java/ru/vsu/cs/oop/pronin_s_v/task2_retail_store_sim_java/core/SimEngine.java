@@ -10,6 +10,9 @@ import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.PurchaseEvent
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.pricing.PriceService;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.reporting.Reporter;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.AppContext;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.SetDiscountEvent;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.AppContext;
+
 
 
 /** Движок: идём по дням, планируем и выполняем события. */
@@ -20,7 +23,7 @@ public class SimEngine {
 
     // сервис цен/скидок — один на весь движок
     private final PriceService priceService =
-            new PriceService(Config.PERISHABLE_HORIZON_DAYS, Config.PERISHABLE_DISCOUNT);
+            new PriceService(Config.PERISHABLE_HORIZON_DAYS, Config.PERISHABLE_DISCOUNT, AppContext.discountBook);
 
     public SimEngine(Clock clock, EventQueue queue, RandomEx rnd) {
         this.clock = clock;
@@ -33,6 +36,14 @@ public class SimEngine {
         // 1) Чистка просрочки — в начале дня
         if (rnd.chance(0.9)) {
             queue.add(new RemoveExpiredEvent(d));
+        }
+
+        if (rnd.chance(Config.DISCOUNT_EVENT_PROB)) { // шанс появления акции сегодня
+            queue.add(new SetDiscountEvent(d, rnd, AppContext.discountBook));
+            // можно создать 1-2 события
+            if (rnd.chance(0.2)) {
+                queue.add(new SetDiscountEvent(d, rnd, AppContext.discountBook));
+            }
         }
         // 2) Поставка на склад
         if (rnd.chance(0.6)) {
