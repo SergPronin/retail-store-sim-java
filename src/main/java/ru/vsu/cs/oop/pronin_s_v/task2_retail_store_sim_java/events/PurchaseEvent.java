@@ -14,6 +14,11 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Событие: покупка товаров покупателем.
+ * Покупатель выбирает несколько товаров из ассортимента торгового зала,
+ * исходя из бюджета и предпочтений.
+ */
 public class PurchaseEvent extends Event {
     private static int NEXT_ID = 1;
     private final RandomEx rnd;
@@ -21,7 +26,8 @@ public class PurchaseEvent extends Event {
 
     public PurchaseEvent(LocalDate when, RandomEx rnd, PriceService prices) {
         super(when);
-        this.rnd = rnd; this.prices = prices;
+        this.rnd = rnd;
+        this.prices = prices;
     }
 
     @Override
@@ -30,15 +36,18 @@ public class PurchaseEvent extends Event {
         var cats = prods.stream().map(Product::category).distinct().collect(Collectors.toList());
         var customer = new Customer(NEXT_ID++, rnd, cats);
 
-        // Сформируем список кандидатов из ассортимента, даём приоритет любимым категориям
         List<Product> floorProducts = new ArrayList<>(AppContext.inventory.totalByLocation(Location.FLOOR).keySet());
         if (floorProducts.isEmpty()) {
             System.out.printf("[%s] Покупатель #%d: в зале пусто, покупка отменена%n", when, customer.id);
             return;
         }
-        floorProducts.sort((a,b) -> Boolean.compare(customer.likes(b), customer.likes(a)));
 
-        int want = rnd.range(2, Math.min(5, floorProducts.size()));
+        floorProducts.sort((a, b) -> Boolean.compare(customer.likes(b), customer.likes(a)));
+
+        int max = Math.min(5, floorProducts.size());
+        int min = Math.min(2, max);
+        int want = rnd.range(min, max);
+
         BigDecimal total = BigDecimal.ZERO;
         Map<Product, Double> purchased = new LinkedHashMap<>();
 
@@ -46,14 +55,17 @@ public class PurchaseEvent extends Event {
             Product p = floorProducts.get(i);
             double qty = customer.desiredQty(p, rnd);
 
-            // Цена берётся с учётом скидки по ближайшей партии на зале (приближённо)
-            // (Для простоты: берём expiry ближайшей партии как ориентир скидки)
-            LocalDate expiry = null; // нет публичного доступа к партиям — считаем, что скидка определяется политикой по today+expiry≈не знаем → ок
-            var unitPrice = prices.retailPrice(p, when, expiry);
+            // Определяем цену (пока без фактического срока годности)
+            LocalDate expiry = null;
+            BigDecimal unitPrice = prices.retailPrice(p, when, expiry);
             BigDecimal cost = unitPrice.multiply(BigDecimal.valueOf(qty));
 
-            if (total.add(cost).doubleValue() > customer.budget) continue; // не влезает — пропускаем
+            // Проверяем бюджет
+            if (total.add(cost).doubleValue() > customer.budget) {
+                continue;
+            }
 
+            // Пытаемся списать с зала
             double deducted = AppContext.inventory.deductFromFloor(p, qty);
             if (deducted > 0) {
                 purchased.put(p, deducted);
@@ -61,13 +73,14 @@ public class PurchaseEvent extends Event {
             }
         }
 
+        // Если ничего не куплено
         if (purchased.isEmpty()) {
             System.out.printf("[%s] Покупатель #%d: ничего не куплено (бюджет=%.2f)%n",
                     when, customer.id, customer.budget);
             return;
         }
 
-        // лог чека
+        // Лог чека
         System.out.printf("[%s] Покупатель #%d: чек=%.2f, позиций=%d (бюджет=%.2f)%n",
                 when, customer.id, total.doubleValue(), purchased.size(), customer.budget);
         for (var e : purchased.entrySet()) {
