@@ -98,4 +98,9 @@ public class PurchaseEvent extends Event {
             System.out.printf("   - %s x %.2f%n", e.getKey().name(), e.getValue());
         }
     }
+
+    @Override
+    public int priority() {
+        return 30;
+    }
 }

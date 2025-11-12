@@ -20,4 +20,9 @@ public class RemoveExpiredEvent extends Event {
         AppContext.dayStats.addExpiredLots(fromWarehouse + fromFloor);
         System.out.printf("[%s] Просрочка удалена: склад=%d, зал=%d%n", when, fromWarehouse, fromFloor);
     }
+
+    @Override
+    public int priority() {
+        return 0;
+    }
 }

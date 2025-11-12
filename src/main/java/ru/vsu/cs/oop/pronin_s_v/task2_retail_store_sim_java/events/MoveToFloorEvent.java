@@ -43,4 +43,9 @@ public class MoveToFloorEvent extends Event {
             }
         }
     }
+
+    @Override
+    public int priority() {
+        return 20;
+    }
 }
