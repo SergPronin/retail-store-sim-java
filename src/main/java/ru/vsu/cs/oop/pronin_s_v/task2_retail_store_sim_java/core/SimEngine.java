@@ -1,6 +1,10 @@
 package ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.core;
 
 import java.time.LocalDate;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.DeliveryEvent;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.MoveToFloorEvent;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.RemoveExpiredEvent;
+
 
 /**
  * Движок: идём по дням, сеем события (пока пусто) и выполняем их.
@@ -16,10 +20,19 @@ public class SimEngine {
         this.rnd = rnd;
     }
 
-    /** Накидываем события на конкретный день (пока заглушка-лог). */
     public void seedDay(LocalDate d) {
-        // Здесь позже: RemoveExpired, Delivery, MoveToFloor, Discounts, Purchases и т.п.
-        System.out.printf("[%s] Планировщик: событий пока нет (каркас)%n", d);
+        // 1) почти каждый день чистим просрочку в начале
+        if (rnd.chance(0.9)) {
+            queue.add(new RemoveExpiredEvent(d));
+        }
+        // 2) поставка на склад
+        if (rnd.chance(0.6)) {
+            queue.add(new DeliveryEvent(d, rnd));
+        }
+        // 3) выкладка в зал
+        if (rnd.chance(0.7)) {
+            queue.add(new MoveToFloorEvent(d, rnd));
+        }
     }
 
     /** Выполнить N дней симуляции: seed -> run -> nextDay. */
