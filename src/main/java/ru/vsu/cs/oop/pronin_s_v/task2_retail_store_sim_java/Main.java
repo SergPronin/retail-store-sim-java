@@ -11,7 +11,7 @@ import java.time.LocalDate;
 /**
  * Минимальный CLI-запуск:
  * java -jar app.jar [days] [seed]
- *
+ *п
  * days — по умолчанию Config.SIM_DAYS_DEFAULT
  * seed — по умолчанию 42
  */

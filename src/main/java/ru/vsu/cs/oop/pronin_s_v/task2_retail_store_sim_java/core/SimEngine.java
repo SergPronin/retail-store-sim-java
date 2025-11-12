@@ -3,9 +3,9 @@ package ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.core;
 import java.time.LocalDate;
 
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.app.Config;
-import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.DeliveryEvent;      // ← добавь
-import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.MoveToFloorEvent;   // ← добавь
-import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.RemoveExpiredEvent; // ← добавь
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.DeliveryEvent;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.MoveToFloorEvent;
+import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.RemoveExpiredEvent;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.events.PurchaseEvent;
 import ru.vsu.cs.oop.pronin_s_v.task2_retail_store_sim_java.pricing.PriceService;
 
@@ -27,7 +27,7 @@ public class SimEngine {
 
     /** Планирование событий на конкретный день. */
     public void seedDay(LocalDate d) {
-        // 1) Чистка просрочки — почти всегда в начале дня
+        // 1) Чистка просрочки — в начале дня
         if (rnd.chance(0.9)) {
             queue.add(new RemoveExpiredEvent(d));
         }
@@ -39,7 +39,7 @@ public class SimEngine {
         if (rnd.chance(0.7)) {
             queue.add(new MoveToFloorEvent(d, rnd));
         }
-        // 4) Покупатели (после выкладки, чтобы было что покупать)
+        // 4) Покупатели (после выкладки)
         int buyers = rnd.range(Config.CUSTOMERS_PER_DAY_MIN, Config.CUSTOMERS_PER_DAY_MAX);
         for (int i = 0; i < buyers; i++) {
             queue.add(new PurchaseEvent(d, rnd, priceService));
